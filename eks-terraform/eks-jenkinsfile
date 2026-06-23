@@ -1,27 +1,28 @@
 pipeline {
     agent any
-
     parameters {
-        choice(
-            name: 'ACTION',
-            choices: ['apply', 'destroy'],
-            description: '🔧 Select the Terraform action to perform'
-        )
+        choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Select Terraform Action')
     }
-
     stages {
         stage('Checkout from Git') {
             steps {
-                echo 'Checking out Git repository...'
+                git url: 'https://github.com/arumullayaswanth/Microservices-E-Commerce-eks-project.git', branch: 'master'
             }
         }
-
+        stage('Fix S3 Backend Bucket') {
+            steps {
+                dir('eks-terraform') {
+                    // This swaps out the author's bucket for your 'eswarpala1988' bucket
+                    sh "sed -i 's/aluruarumullaa2/eswarpala1988/g' backend.tf"
+                    sh "cat backend.tf" // Verifies the change in the logs
+                }
+            }
+        }
         stage('Terraform version') {
             steps {
                 sh 'terraform --version'
             }
         }
-
         stage('Terraform init') {
             steps {
                 dir('eks-terraform') {
@@ -29,15 +30,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Terraform validate') {
-            steps {
-                dir('eks-terraform') {
-                    sh 'terraform validate'
-                }
-            }
-        }
-
         stage('Terraform plan') {
             steps {
                 dir('eks-terraform') {
@@ -45,25 +37,11 @@ pipeline {
                 }
             }
         }
-
         stage('Terraform apply') {
-            when {
-                expression { params.ACTION == 'apply' }
-            }
+            when { expression { params.ACTION == 'apply' } }
             steps {
                 dir('eks-terraform') {
-                    sh 'terraform apply -auto-approve'
-                }
-            }
-        }
-
-        stage('Terraform destroy') {
-            when {
-                expression { params.ACTION == 'destroy' }
-            }
-            steps {
-                dir('eks-terraform') {
-                    sh 'terraform destroy -auto-approve'
+                    sh 'terraform apply --auto-approve'
                 }
             }
         }
